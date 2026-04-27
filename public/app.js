@@ -89,7 +89,7 @@ function applyTheme(theme) {
     button.setAttribute("aria-pressed", String(nextTheme === "dark"));
 
     if (icon) {
-      icon.textContent = nextTheme === "light" ? "☾" : "☀";
+      icon.textContent = nextTheme === "light" ? "Dark" : "Light";
     }
   });
 }
@@ -334,7 +334,7 @@ function renderGallery(settings = shopSettings) {
   setupReveal();
 }
 
-function renderTimeOptions(settings = shopSettings) {
+function renderTimeOptions(settings = shopSettings, selectedDateStr = null) {
   const select = document.getElementById("booking-time");
   if (!select) {
     return;
@@ -344,7 +344,25 @@ function renderTimeOptions(settings = shopSettings) {
   const interval = Number(settings.slotIntervalMinutes) || 30;
   const times = [];
 
-  for (let mins = 9 * 60; mins <= 18 * 60 + 30; mins += interval) {
+  // Determine open/close hours from the selected date's day of week
+  let openMins = 9 * 60;   // default: 9:00
+  let closeMins = 19 * 60; // default: 19:00
+
+  if (selectedDateStr) {
+    // Parse yyyy-mm-dd without timezone shift
+    const parts = selectedDateStr.split("-");
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      const dayOfWeek = d.getDay();
+      const daySchedule = getScheduleForDay(dayOfWeek);
+      if (daySchedule) {
+        openMins = minutesOf(daySchedule, "open");
+        closeMins = minutesOf(daySchedule, "close");
+      }
+    }
+  }
+
+  for (let mins = openMins; mins <= closeMins - interval; mins += interval) {
     const hour = String(Math.floor(mins / 60)).padStart(2, "0");
     const minute = String(mins % 60).padStart(2, "0");
     times.push(`${hour}:${minute}`);
@@ -477,6 +495,11 @@ function setupBookingForm() {
       const day = String(formData.get("preferredDay") || "").trim();
       const time = String(formData.get("preferredTime") || "").trim();
 
+      // When day changes, regenerate time options for that day's schedule
+      if (input === preferredDayInput && day) {
+        renderTimeOptions(shopSettings, day);
+      }
+
       if (!day || !time) {
         updateAvailabilityNote("");
         return;
@@ -570,9 +593,9 @@ function setupBookingForm() {
     if (preferredDayInput) {
       preferredDayInput.min = new Date().toISOString().slice(0, 10);
     }
-    renderTimeOptions();
+    renderTimeOptions(shopSettings);
     updateAvailabilityNote("");
-    setFeedback(feedback, "success", "Thanks. Your request has been sent and the shop will be in touch soon.");
+    setFeedback(feedback, "success", "\u2713 Thanks! Your request has been sent and the shop will be in touch soon.");
   });
 }
 

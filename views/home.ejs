@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= business.name %> | Edinburgh Barber</title>
+    <meta name="description" content="<%= business.intro %>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="topbar">
+      <div class="container topbar-inner">
+        <span><%= business.reviewSummary %></span>
+        <span id="shop-status">Open 7 days</span>
+        <a href="tel:<%= business.phone.replace(/\s+/g, '') %>"><%= business.phone %></a>
+      </div>
+    </div>
+
+    <header class="site-header">
+      <div class="container nav-row">
+        <a href="/" class="brand">
+          <span class="brand-main"><%= business.name %></span>
+          <span class="brand-sub">Edinburgh</span>
+        </a>
+        <nav class="nav-links">
+          <a href="#services">Services</a>
+          <a href="#gallery">Gallery</a>
+          <a href="#booking">Booking</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero reveal">
+        <div class="container hero-grid" data-hero-parallax>
+          <div class="hero-copy">
+            <p class="eyebrow"><%= business.tagline %></p>
+            <h1><%= business.headline %></h1>
+            <p class="lead"><%= business.intro %></p>
+
+            <div class="pill-row">
+              <% highlights.forEach((item) => { %>
+                <span class="info-pill"><%= item %></span>
+              <% }) %>
+            </div>
+
+            <div class="hero-actions">
+              <a class="button button-primary" href="#booking">Book now</a>
+              <a class="button button-secondary" href="<%= business.mapUrl %>" target="_blank" rel="noreferrer">Get directions</a>
+            </div>
+
+            <div class="hero-bottom-row">
+              <div class="live-status-card">
+                <span class="live-status-label">Today</span>
+                <strong id="live-status-title">Checking opening hours</strong>
+                <p id="live-status-copy">Loading current opening status.</p>
+              </div>
+
+              <div class="hero-quote-card">
+                <span class="hero-quote-kicker">Why it feels premium</span>
+                <p>Real photography, clear prices, and a cleaner presentation that still feels like the same local shop.</p>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <article class="stat-card">
+                <strong>120</strong>
+                <span>Google reviews</span>
+              </article>
+              <article class="stat-card">
+                <strong>4.7</strong>
+                <span>Average rating</span>
+              </article>
+              <article class="stat-card">
+                <strong>7 days</strong>
+                <span>Open every week</span>
+              </article>
+            </div>
+          </div>
+
+          <div class="hero-visual">
+            <img src="/images/storefront.jpg" alt="Crewe Cut Barber storefront" onerror="this.onerror=null;this.src='/images/interior-wide.jpg'">
+            <div class="floating-card floating-top">
+              <span>Trusted local shop</span>
+              <strong>Walk in for a trim. Leave looking sharper.</strong>
+            </div>
+            <div class="floating-card floating-bottom">
+              <span>Visit us</span>
+              <strong><%= business.addressLine1 %></strong>
+              <em><%= business.addressLine2 %></em>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="action-rail reveal">
+        <div class="container action-grid">
+          <% actionCards.forEach((card) => { %>
+            <article class="action-card reveal">
+              <p class="eyebrow">Fast action</p>
+              <h3><%= card.title %></h3>
+              <p><%= card.text %></p>
+              <a class="action-link" href="<%= card.link %>" <%= card.link.startsWith('http') ? 'target="_blank" rel="noreferrer"' : '' %>><%= card.linkLabel %></a>
+            </article>
+          <% }) %>
+        </div>
+      </section>
+
+      <section class="story reveal">
+        <div class="container story-grid">
+          <div>
+            <p class="eyebrow">Inside the shop</p>
+            <h2>A cleaner digital look, built around the real atmosphere clients already trust in person.</h2>
+            <p class="section-copy">The premium feel comes from restraint: fewer distractions, stronger photography, and a layout that gets people to pricing, directions, and booking quickly.</p>
+            <div class="hours-grid">
+              <% business.hours.forEach((item) => { %>
+                <div class="hour-card">
+                  <strong><%= item.day %></strong>
+                  <span><%= item.value %></span>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+          <div class="story-photo-stack">
+            <img class="story-main" src="/images/interior-wide.jpg" alt="Crewe Cut Barber interior" onerror="this.onerror=null;this.src='/images/interior-row.jpg'">
+            <img class="story-side" src="/images/cut-detail.jpg" alt="Haircut detail at Crewe Cut Barber" onerror="this.onerror=null;this.src='/images/fade-finish.jpg'">
+          </div>
+        </div>
+      </section>
+
+      <section class="reasons reveal">
+        <div class="container">
+          <div class="section-head reasons-head">
+            <div>
+              <p class="eyebrow">What lifts the feel</p>
+              <h2>The details that make the site look better without losing the barbershop character.</h2>
+            </div>
+            <p class="section-copy">A premium small-business site should look confident, not flashy. The best parts here are the clear journey, the local trust signals, and the fact that the visuals come from the real shop.</p>
+          </div>
+          <div class="reasons-grid">
+            <% reasons.forEach((item) => { %>
+              <article class="reason-card reveal">
+                <h3><%= item.title %></h3>
+                <p><%= item.text %></p>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      </section>
+
+      <section id="services" class="services reveal">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Price list</p>
+            <h2>Clear prices for cuts, fades, beard work, shaves, and grooming.</h2>
+          </div>
+          <div class="services-grid">
+            <% services.forEach((service) => { %>
+              <article class="service-card reveal <%= service.featured ? 'featured' : '' %>">
+                <div class="service-meta">
+                  <span><%= service.duration %></span>
+                  <strong><%= service.price %></strong>
+                </div>
+                <h3><%= service.name %></h3>
+                <p><%= service.description %></p>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      </section>
+
+      <section id="gallery" class="gallery reveal">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">Gallery</p>
+            <h2>A closer look at the shop, the setup, and the standard of finish.</h2>
+          </div>
+          <div class="gallery-grid">
+            <% gallery.forEach((item, index) => { %>
+              <article class="gallery-card reveal gallery-card-<%= index + 1 %>">
+                <button class="gallery-button" type="button" data-gallery-src="<%= item.image %>" data-gallery-title="<%= item.title %>" data-gallery-text="<%= item.text %>">
+                  <img src="<%= item.image %>" alt="<%= item.title %>" loading="lazy" onerror="this.onerror=null;this.src='/images/interior-wide.jpg'">
+                </button>
+                <div class="gallery-overlay">
+                  <h3><%= item.title %></h3>
+                  <p><%= item.text %></p>
+                </div>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq reveal">
+        <div class="container">
+          <div class="section-head">
+            <p class="eyebrow">FAQs</p>
+            <h2>The practical details most clients want before they choose a barber.</h2>
+          </div>
+          <div class="faq-grid">
+            <% faqs.forEach((item) => { %>
+              <article class="faq-card reveal">
+                <h3><%= item.question %></h3>
+                <p><%= item.answer %></p>
+              </article>
+            <% }) %>
+          </div>
+        </div>
+      </section>
+
+      <section id="booking" class="booking reveal">
+        <div class="container booking-grid">
+          <div class="booking-copy">
+            <p class="eyebrow">Booking</p>
+            <h2>Send a booking request and the shop can come back with the best available slot.</h2>
+            <p class="section-copy">Keep it simple. Choose the service you want, add your preferred time, and leave any quick notes that help the barber prepare.</p>
+            <div class="backend-points">
+              <div><strong>1.</strong><span>Choose your service and preferred time</span></div>
+              <div><strong>2.</strong><span>Send your request in under a minute</span></div>
+              <div><strong>3.</strong><span>The shop replies with the best available slot</span></div>
+            </div>
+            <div class="contact-card">
+              <strong><%= business.name %></strong>
+              <span><%= business.addressLine1 %>, <%= business.addressLine2 %></span>
+              <a href="tel:<%= business.phone.replace(/\s+/g, '') %>"><%= business.phone %></a>
+            </div>
+          </div>
+
+          <form class="booking-form" action="/bookings" method="post">
+            <% if (typeof query !== 'undefined' && query.booking === 'success') { %>
+              <div class="form-message success">Booking request saved successfully.</div>
+            <% } %>
+            <% if (typeof query !== 'undefined' && query.booking === 'missing') { %>
+              <div class="form-message error">Please fill in all required fields.</div>
+            <% } %>
+
+            <label>
+              Full name
+              <input type="text" name="clientName" required>
+            </label>
+            <label>
+              Phone number
+              <input type="tel" name="phone" required>
+            </label>
+            <label>
+              Email
+              <input type="email" name="email" required>
+            </label>
+            <label>
+              Service
+              <select name="service" required>
+                <option value="">Select a service</option>
+                <% services.forEach((service) => { %>
+                  <option value="<%= service.name %>"><%= service.name %> - <%= service.price %></option>
+                <% }) %>
+              </select>
+            </label>
+            <div class="split-fields">
+              <label>
+                Preferred day
+                <input type="date" name="preferredDay" required>
+              </label>
+              <label>
+                Preferred time
+                <input type="time" name="preferredTime" required>
+              </label>
+            </div>
+            <label>
+              Notes
+              <textarea name="notes" rows="5" placeholder="Hair type, beard work, or anything useful for the barber."></textarea>
+            </label>
+            <button class="button button-primary button-full" type="submit">Send booking request</button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-row">
+        <div>
+          <strong><%= business.name %></strong>
+          <p><%= business.addressLine1 %>, <%= business.addressLine2 %></p>
+        </div>
+        <div>
+          <a href="tel:<%= business.phone.replace(/\s+/g, '') %>"><%= business.phone %></a>
+          <p><%= business.reviewSummary %></p>
+        </div>
+      </div>
+      <div class="container footer-admin-row">
+        <a class="footer-admin-link" href="/admin" aria-label="Admin login">Admin</a>
+      </div>
+    </footer>
+
+    <div class="mobile-cta-bar">
+      <a href="tel:<%= business.phone.replace(/\s+/g, '') %>">Call now</a>
+      <a href="#booking">Book</a>
+      <a href="<%= business.mapUrl %>" target="_blank" rel="noreferrer">Directions</a>
+    </div>
+    <div class="lightbox" id="gallery-lightbox" aria-hidden="true">
+      <button class="lightbox-close" type="button" aria-label="Close gallery">&times;</button>
+      <div class="lightbox-dialog">
+        <img id="lightbox-image" src="" alt="">
+        <div class="lightbox-copy">
+          <h3 id="lightbox-title"></h3>
+          <p id="lightbox-text"></p>
+        </div>
+      </div>
+    </div>
+    <script src="/app.js"></script>
+  </body>
+</html>
