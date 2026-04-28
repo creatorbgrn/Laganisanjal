@@ -604,3 +604,23 @@ updateOpenStatus();
 setupHeroMotion();
 setupBookingForm();
 loadShopSettings();
+
+function setupMobileNav() {
+  const menuBtn = document.getElementById("public-menu-btn");
+  const siteHeader = document.querySelector(".site-header");
+  const navLinks = document.querySelectorAll(".nav-links a");
+
+  if (!menuBtn || !siteHeader) return;
+
+  menuBtn.addEventListener("click", () => {
+    siteHeader.classList.toggle("menu-open");
+  });
+
+  navLinks.forEach(link => {
+    link.addEventListener("click", () => {
+      siteHeader.classList.remove("menu-open");
+    });
+  });
+}
+
+setupMobileNav();
