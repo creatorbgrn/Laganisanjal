@@ -12,6 +12,7 @@ const statsGrid = document.getElementById("admin-stats");
 const latestBookings = document.getElementById("latest-bookings");
 const todayBookings = document.getElementById("today-bookings");
 const clientsList = document.getElementById("clients-list");
+const subscribersList = document.getElementById("subscribers-list");
 const mobileBookings = document.getElementById("mobile-bookings");
 const tableBody = document.getElementById("bookings-table-body");
 const sectionButtons = document.querySelectorAll("[data-admin-target]");
@@ -406,6 +407,23 @@ function formatSlot(day, time) {
   return `${datePart} at ${timePart}`;
 }
 
+function getBookingFlags(booking) {
+  const notes = String(booking?.notes || "");
+  return {
+    newsletter: Boolean(booking?.newsletter_subscribed) || notes.includes("[NEWSLETTER_SUBSCRIBER]"),
+    discount: Boolean(booking?.wants_discount) || notes.includes("[DISCOUNT_10]")
+  };
+}
+
+function getCleanNotes(notes) {
+  const cleaned = String(notes || "")
+    .replaceAll("[NEWSLETTER_SUBSCRIBER]", "")
+    .replaceAll("[DISCOUNT_10]", "")
+    .trim();
+
+  return cleaned || "-";
+}
+
 function normaliseDay(value) {
   return value || "";
 }
@@ -542,6 +560,68 @@ function renderClients(bookings) {
   `).join("");
 }
 
+function renderSubscribers(bookings) {
+  if (!subscribersList) {
+    return;
+  }
+
+  const subscribers = new Map();
+
+  bookings
+    .filter((booking) => getBookingFlags(booking).newsletter)
+    .forEach((booking) => {
+      const email = String(booking.email || "").toLowerCase().trim();
+      const phone = String(booking.phone || "").trim();
+      const key = email || phone || String(booking.id || "");
+      const existing = subscribers.get(key);
+
+      if (existing) {
+        existing.requests += 1;
+        if (new Date(booking.created_at) > new Date(existing.created_at)) {
+          existing.created_at = booking.created_at;
+          existing.client_name = booking.client_name;
+          existing.phone = booking.phone;
+          existing.email = booking.email;
+          existing.service = booking.service;
+          existing.discount = getBookingFlags(booking).discount;
+        }
+        return;
+      }
+
+      subscribers.set(key, {
+        client_name: booking.client_name,
+        phone: booking.phone,
+        email: booking.email,
+        service: booking.service,
+        created_at: booking.created_at,
+        requests: 1,
+        discount: getBookingFlags(booking).discount
+      });
+    });
+
+  const items = [...subscribers.values()].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (!items.length) {
+    subscribersList.innerHTML = '<div class="admin-list-empty">No newsletter subscribers yet.</div>';
+    return;
+  }
+
+  subscribersList.innerHTML = items.map((subscriber) => `
+    <article class="admin-list-item">
+      <div>
+        <strong>${escapeHtml(subscriber.client_name || "Subscriber")}</strong>
+        <span>${escapeHtml(subscriber.service || "No recent service")}</span>
+      </div>
+      <div class="admin-list-side">
+        <span><a href="mailto:${escapeHtml(subscriber.email || "")}">${escapeHtml(subscriber.email || "No email")}</a></span>
+        <span><a href="tel:${escapeHtml(String(subscriber.phone || "").replace(/\s+/g, ""))}">${escapeHtml(subscriber.phone || "No phone")}</a></span>
+        <span>${escapeHtml(String(subscriber.requests))} request${subscriber.requests === 1 ? "" : "s"}</span>
+        <span>${subscriber.discount ? "Requested 10% discount" : "No discount selected"}</span>
+      </div>
+    </article>
+  `).join("");
+}
+
 function getFilteredBookings() {
   const search = String(bookingSearchInput?.value || "").trim().toLowerCase();
   const status = bookingStatusFilter?.value || "all";
@@ -601,7 +681,7 @@ function renderBookings(bookings) {
         </div>
         <div>
           <dt>Notes</dt>
-          <dd>${escapeHtml(booking.notes || "-")}</dd>
+          <dd>${escapeHtml(getCleanNotes(booking.notes))}</dd>
         </div>
       </dl>
       <form class="status-form" data-booking-id="${escapeHtml(booking.id)}">
@@ -627,7 +707,7 @@ function renderBookings(bookings) {
         <a href="tel:${escapeHtml(String(booking.phone).replace(/\s+/g, ""))}">${escapeHtml(booking.phone)}</a><br>
         <a href="mailto:${escapeHtml(booking.email)}">${escapeHtml(booking.email)}</a>
       </td>
-      <td>${escapeHtml(booking.notes || "-")}</td>
+      <td>${escapeHtml(getCleanNotes(booking.notes))}</td>
       <td>
         <form class="status-form" data-booking-id="${escapeHtml(booking.id)}">
           <span class="status-badge status-${escapeHtml(booking.status)}">${escapeHtml(booking.status)}</span>
@@ -702,6 +782,7 @@ async function loadBookings() {
     "No requests scheduled for today."
   );
   renderClients(bookings);
+  renderSubscribers(bookings);
   renderBookings(getFilteredBookings());
 }
 

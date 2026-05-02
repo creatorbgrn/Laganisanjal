@@ -89,7 +89,9 @@ function applyTheme(theme) {
     button.setAttribute("aria-pressed", String(nextTheme === "dark"));
 
     if (icon) {
-      icon.textContent = nextTheme === "light" ? "Dark" : "Light";
+      icon.innerHTML = nextTheme === "light"
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icon-moon"><path d="M14.8 3.8a8.6 8.6 0 1 0 5.4 12.9A9.4 9.4 0 1 1 14.8 3.8z"/><circle class="icon-star" cx="17.8" cy="5.2" r="1.1"/><circle class="icon-star" cx="20.6" cy="8.1" r="0.8"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" class="icon-sun"><circle cx="12" cy="12" r="4.2"/><path d="M12 1.9v2.6M12 19.5v2.6M4.1 4.1l1.9 1.9M18 18l1.9 1.9M1.9 12h2.6M19.5 12h2.6M4.1 19.9 6 18M18 6l1.9-1.9"/></svg>';
     }
   });
 }
@@ -529,6 +531,17 @@ function setupBookingForm() {
     }
 
     const formData = new FormData(form);
+    const newsletterOffer = String(formData.get("newsletterOffer") || "") === "yes";
+    const notes = String(formData.get("notes") || "").trim();
+    const tags = [];
+
+    if (newsletterOffer) {
+      tags.push("[DISCOUNT_10]");
+      tags.push("[NEWSLETTER_SUBSCRIBER]");
+    }
+
+    const notesWithTags = [notes, tags.join(" ")].filter(Boolean).join("\n").trim();
+
     const payload = {
       client_name: String(formData.get("clientName") || "").trim(),
       phone: String(formData.get("phone") || "").trim(),
@@ -536,7 +549,7 @@ function setupBookingForm() {
       service: String(formData.get("service") || "").trim(),
       preferred_day: String(formData.get("preferredDay") || "").trim(),
       preferred_time: String(formData.get("preferredTime") || "").trim(),
-      notes: String(formData.get("notes") || "").trim(),
+      notes: notesWithTags,
       status: "new"
     };
 

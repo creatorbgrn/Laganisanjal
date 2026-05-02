@@ -103,6 +103,12 @@
             </span>
             <span class="nav-label">Clients</span>
           </button>
+          <button class="nav-item" data-admin-target="subscribers">
+            <span class="nav-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </span>
+            <span class="nav-label">Subscribers</span>
+          </button>
           <button class="nav-item" data-admin-target="calendar">
             <span class="nav-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -361,6 +367,27 @@
             </div>
           </section>
 
+          <section class="admin-section" id="admin-section-subscribers" data-admin-section="subscribers">
+            <div class="page-header">
+              <div>
+                <p class="page-eyebrow">Marketing</p>
+                <h2 class="page-title">Subscribers</h2>
+              </div>
+              <div class="header-actions">
+                <button class="btn btn-ghost" id="export-subscribers-btn">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Export Subscribers
+                </button>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h3 class="panel-title">Newsletter Subscribers</h3>
+              </div>
+              <div class="panel-body" id="subscribers-list"></div>
+            </div>
+          </section>
+
           <!-- ── CALENDAR ── -->
           <section class="admin-section" id="admin-section-calendar" data-admin-section="calendar">
             <div class="page-header">
@@ -613,6 +640,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="config.js?v=20260427"></script>
-    <script src="admin-pro.js?v=20260427"></script>
+    <script src="admin-pro.js?v=20260502-2"></script>
   </body>
 </html>

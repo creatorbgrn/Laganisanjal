@@ -182,8 +182,36 @@ h3 {
 }
 
 .theme-toggle-icon {
-  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
   line-height: 1;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.theme-toggle-icon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.theme-toggle-icon .icon-star {
+  fill: currentColor;
+  stroke: none;
+}
+
+body[data-theme="dark"] .theme-toggle-icon {
+  transform: rotate(12deg) scale(1.02);
+}
+
+body[data-theme="light"] .theme-toggle-icon {
+  transform: rotate(-10deg);
 }
 
 .theme-toggle-label {
@@ -220,6 +248,52 @@ h3 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1.5rem;
   align-items: center;
+}
+
+.booking-grid {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  align-items: start;
+}
+
+.booking-copy {
+  max-width: 34rem;
+}
+
+.booking-side-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015));
+}
+
+.booking-side-panel h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+}
+
+.booking-side-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.booking-side-item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.booking-side-item strong {
+  font-size: 0.95rem;
+}
+
+.booking-side-item span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
 .eyebrow {
@@ -679,6 +753,39 @@ body[data-theme="light"] .booking-form textarea:focus {
 
 .booking-form textarea {
   resize: vertical;
+}
+
+.booking-options {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  padding: 0.72rem 0.78rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.checkbox-option input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 0.08rem;
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
+.checkbox-option:has(input:checked) {
+  border-color: rgba(212, 164, 104, 0.45);
+  background: rgba(212, 164, 104, 0.1);
+  color: var(--text);
 }
 
 .split-fields {
@@ -1391,6 +1498,10 @@ body[data-theme="light"] .mobile-cta-bar a {
     width: min(100% - 1rem, 1140px);
   }
 
+  .topbar {
+    display: none;
+  }
+
   .topbar-inner,
   .footer-row {
     align-items: flex-start;
@@ -1435,11 +1546,29 @@ body[data-theme="light"] .mobile-cta-bar a {
   .nav-links {
     display: none;
     flex-direction: column;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
     width: 100%;
-    margin-top: 1rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--line);
-    gap: 0.5rem;
+    margin-top: 0;
+    padding: 1rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    gap: 0.75rem;
+    z-index: 999;
+    animation: slideDown 0.25s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .site-header.menu-open .nav-links {
@@ -1448,6 +1577,9 @@ body[data-theme="light"] .mobile-cta-bar a {
 
   .nav-links a {
     display: flex;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
     justify-content: flex-start;
     padding: 0.75rem 1rem;
     border: 1px solid var(--line);
@@ -1455,6 +1587,22 @@ body[data-theme="light"] .mobile-cta-bar a {
     background: rgba(255, 255, 255, 0.04);
     font-size: 0.95rem;
     font-weight: 700;
+  }
+
+  .nav-links a:hover,
+  .nav-links a:focus-visible {
+    background: rgba(212, 164, 104, 0.15);
+    border-color: rgba(212, 164, 104, 0.4);
+    transform: translateX(4px);
+  }
+
+  .public-menu-btn {
+    transition: all 0.25s ease;
+  }
+
+  .site-header.menu-open .public-menu-btn {
+    background: rgba(212, 164, 104, 0.15);
+    border-color: rgba(212, 164, 104, 0.4);
   }
 
   .theme-toggle {
@@ -1575,6 +1723,10 @@ body[data-theme="light"] .mobile-cta-bar a {
   .booking-copy {
     display: grid;
     gap: 0.85rem;
+  }
+
+  .booking-side-panel {
+    display: none;
   }
 
   .booking-form {
@@ -2116,23 +2268,9 @@ body[data-theme="light"] .mobile-cta-bar a {
   animation-delay: 0.3s;
 }
 
-/* ── Info pills — professional check via CSS ── */
+/* ── Info pills ── */
 .info-pill {
   position: relative;
-  padding-left: 1.55rem;
-}
-
-.info-pill::before {
-  content: "";
-  position: absolute;
-  left: 0.55rem;
-  top: 50%;
-  transform: translateY(-50%) rotate(45deg) scaleY(-1);
-  width: 5px;
-  height: 9px;
-  border-right: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-  border-radius: 1px;
 }
 
 /* ── Topbar items with SVG ── */
@@ -2161,10 +2299,7 @@ body[data-theme="light"] .mobile-cta-bar a {
 
 /* ── Theme toggle label ── */
 .theme-toggle-icon {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: inherit;
 }
 
 /* ── Service card entrance ── */

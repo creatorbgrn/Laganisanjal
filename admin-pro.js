@@ -24,6 +24,7 @@ const statsGrid = document.getElementById("admin-stats");
 const latestBookings = document.getElementById("latest-bookings");
 const todayBookings = document.getElementById("today-bookings");
 const clientsList = document.getElementById("clients-list");
+const subscribersList = document.getElementById("subscribers-list");
 const bookingsTableBody = document.getElementById("bookings-table-body");
 const mobileBookings = document.getElementById("mobile-bookings");
 const servicesSettingsList = document.getElementById("services-settings-list");
@@ -83,6 +84,40 @@ function formatTime(time) {
 
 function getTodayStr() {
     return new Date().toISOString().split('T')[0];
+}
+
+function getBookingFlags(booking) {
+    const notes = String(booking?.notes || "");
+    const toBool = (value) => value === true || value === 1 || value === "1" || value === "true" || value === "yes" || value === "on";
+
+    const newsletterByField =
+        toBool(booking?.newsletter_subscribed) ||
+        toBool(booking?.newsletter) ||
+        toBool(booking?.newsletter_offer) ||
+        toBool(booking?.newsletterOffer) ||
+        toBool(booking?.is_subscriber);
+
+    const discountByField =
+        toBool(booking?.wants_discount) ||
+        toBool(booking?.discount_10) ||
+        toBool(booking?.discount10) ||
+        toBool(booking?.discount_offer);
+
+    const notesLower = notes.toLowerCase();
+    const newsletterByNotes =
+        notes.includes("[NEWSLETTER_SUBSCRIBER]") ||
+        notesLower.includes("newsletter") ||
+        notesLower.includes("subscrib");
+
+    const discountByNotes =
+        notes.includes("[DISCOUNT_10]") ||
+        notesLower.includes("10%") ||
+        notesLower.includes("discount");
+
+    return {
+        newsletter: newsletterByField || newsletterByNotes,
+        discount: discountByField || discountByNotes
+    };
 }
 
 // --- NAVIGATION ---
@@ -146,6 +181,7 @@ async function loadData() {
     renderDashboard();
     renderBookingsTable();
     renderClients();
+    renderSubscribers();
     renderSettings();
 }
 
@@ -564,6 +600,65 @@ function renderClients() {
     `).join("");
 }
 
+function getSubscribersData() {
+    const subscribersMap = {};
+
+    allBookings.forEach((b) => {
+        const flags = getBookingFlags(b);
+        if (!flags.newsletter) return;
+
+        const key = (b.email || b.phone || b.id || "").toLowerCase();
+        if (!subscribersMap[key]) {
+            subscribersMap[key] = {
+                name: b.client_name || "Subscriber",
+                email: b.email || "",
+                phone: b.phone || "",
+                requests: 0,
+                discount: false,
+                latest_service: b.service || "",
+                latest_date: b.preferred_day || ""
+            };
+        }
+
+        subscribersMap[key].requests += 1;
+        if (flags.discount) {
+            subscribersMap[key].discount = true;
+        }
+
+        if (b.preferred_day && (!subscribersMap[key].latest_date || b.preferred_day > subscribersMap[key].latest_date)) {
+            subscribersMap[key].latest_date = b.preferred_day;
+            subscribersMap[key].latest_service = b.service || subscribersMap[key].latest_service;
+        }
+    });
+
+    return Object.values(subscribersMap).sort((a, b) => b.requests - a.requests);
+}
+
+function renderSubscribers() {
+    if (!subscribersList) return;
+
+    const subscribers = getSubscribersData();
+
+    if (!subscribers.length) {
+        subscribersList.innerHTML = `<div class="empty-state"><p>No newsletter subscribers yet. New entries appear when the booking checkbox is ticked.</p></div>`;
+        return;
+    }
+
+    subscribersList.innerHTML = subscribers.map((s) => `
+        <div class="client-item">
+            <div class="client-avatar">${(s.name || "S").charAt(0).toUpperCase()}</div>
+            <div class="client-info">
+                <div class="client-name">${s.name}</div>
+                <div class="client-contact">${s.email || "No email"} • ${s.phone || "No phone"}</div>
+            </div>
+            <div class="client-side">
+                <span class="client-visits">${s.requests} Subscription${s.requests === 1 ? "" : "s"}</span>
+                <span class="status-badge status-confirmed" style="margin-top:0.35rem; display:inline-block;">${s.discount ? "10% selected" : "Subscribed"}</span>
+            </div>
+        </div>
+    `).join("");
+}
+
 // --- SETTINGS ---
 function renderSettings() {
     if (!siteSettings) return;
@@ -971,6 +1066,30 @@ document.addEventListener("DOMContentLoaded", () => {
             a.download = `crewecut_bookings_${getTodayStr()}.csv`;
             a.click();
             window.URL.revokeObjectURL(url);
+        });
+    }
+
+    // Export subscribers CSV (Excel-friendly)
+    const exportSubscribersBtn = document.getElementById("export-subscribers-btn");
+    if (exportSubscribersBtn) {
+        exportSubscribersBtn.addEventListener("click", () => {
+            const subscribers = getSubscribersData();
+            if (!subscribers.length) {
+                setFeedback(dashboardFeedback, "error", "No subscriber data to export yet.");
+                return;
+            }
+
+            const headers = "Name,Email,Phone,Total Subscriptions,Discount Selected,Latest Service,Latest Booking Date\n";
+            const rows = subscribers.map((s) => `"${String(s.name || "").replaceAll('"', '""')}","${String(s.email || "").replaceAll('"', '""')}","${String(s.phone || "").replaceAll('"', '""')}","${String(s.requests || 0)}","${s.discount ? "Yes" : "No"}","${String(s.latest_service || "").replaceAll('"', '""')}","${String(s.latest_date || "").replaceAll('"', '""')}"`).join("\n");
+            const csv = "\ufeff" + headers + rows;
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `crewecut_subscribers_${getTodayStr()}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+            setFeedback(dashboardFeedback, "success", "Subscribers exported.");
         });
     }
 
