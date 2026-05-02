@@ -501,6 +501,7 @@ body[data-theme="light"] .theme-toggle {
 @media (max-width: 680px) {
   .hero-visual img {
     min-height: 240px;
+    object-fit: contain;
   }
 }
 
