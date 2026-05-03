@@ -19,7 +19,6 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 const app = express();
 
-const adminPassword = process.env.ADMIN_PASSWORD ?? "ChangeMe123!";
 const sessionSecret = process.env.SESSION_SECRET ?? "replace-this-session-secret";
 const port = Number(process.env.PORT ?? 4321);
 
@@ -98,37 +97,8 @@ app.post("/bookings", async (req, res, next) => {
   }
 });
 
-app.get("/admin", async (req, res, next) => {
-  try {
-    if (!req.session.isAdmin) {
-      res.render("admin-login", {
-        business,
-        invalid: req.query.invalid === "1"
-      });
-      return;
-    }
-
-    const bookings = await listBookings();
-    res.render("admin-dashboard", {
-      bookings,
-      business
-    });
-  } catch (error) {
-    next(error);
-  }
-});
-
-app.post("/admin/login", (req, res) => {
-  const username = String(req.body.username ?? "").trim();
-  const password = String(req.body.password ?? "");
-
-  if (username === "admin" && password === adminPassword) {
-    req.session.isAdmin = true;
-    res.redirect("/admin");
-    return;
-  }
-
-  res.redirect("/admin?invalid=1");
+app.get("/admin", (_req, res) => {
+  res.redirect("/edibarber.html");
 });
 
 app.post("/admin/bookings/:id/status", ensureAdmin, async (req, res, next) => {

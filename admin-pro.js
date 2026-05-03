@@ -339,56 +339,18 @@ function renderAnalytics() {
                     </div>
                     <div class="kpi-value" style="font-size: 2rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">${uniqueClients.size}</div>
                 </div>
-                <div class="kpi-card" id="sales-pin-card" style="border-top: none; background: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.04); border-radius: var(--radius-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 0.5rem; padding: 1.5rem; cursor: pointer; transition: all 0.2s;">
-                    <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: #f59e0b;"></div>
-                    <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <div class="kpi-label" style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">Total Sales</div>
-                        <div class="kpi-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 8px;">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        </div>
-                    </div>
-                    <div class="kpi-value" style="font-size: 1.25rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">
-                        ${salesPinUnlocked ? '✓ Unlocked' : '🔒 Locked'}
-                    </div>
-                    <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">${salesPinUnlocked ? 'View details' : 'Click to unlock'}</div>
-                </div>
             `;
             kpiGrid.innerHTML = kpiHTML;
-            
-            const salesCard = document.getElementById("sales-pin-card");
-            if (salesCard) {
-                salesCard.addEventListener("click", (e) => {
-                    if (salesPinUnlocked) return;
-                    e.preventDefault();
-                    promptSalesPin();
-                });
-            }
         }
 
-        // === SALES DATA (PIN PROTECTED) ===
         const summary = document.getElementById("analytics-sales-summary");
         const breakdownEl = document.getElementById("sales-service-breakdown");
-        const revenuePanel = document.getElementById("revenue-by-service-panel");
-        
-        if (!salesPinUnlocked) {
-            if (summary) summary.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--muted); font-size: 0.9rem;">🔒 Enter PIN to view sales breakdown</div>`;
-            if (breakdownEl) breakdownEl.innerHTML = ``;
-            if (revenuePanel) {
-                revenuePanel.style.opacity = '0.4';
-                revenuePanel.style.pointerEvents = 'none';
-            }
-            // Don't render chart or detailed data
-            return;
-        }
-        
-        // === RENDER CHART & DATA (ONLY WHEN UNLOCKED) ===
-        if (revenuePanel) {
-            revenuePanel.style.opacity = '1';
-            revenuePanel.style.pointerEvents = 'auto';
-        }
-        
+
         if (summary) {
-            summary.innerHTML = `<div style="font-weight: 600; font-size: 1.1rem;">£${revenue.toFixed(2)}</div><div style="font-size:0.85rem; color:var(--muted); font-weight:normal; margin-top:0.25rem;">Period Total</div>`;
+            summary.innerHTML = `
+                <div class="revenue-value">£${revenue.toFixed(2)}</div>
+                <div class="revenue-label">Total sales in selected range</div>
+            `;
         }
 
         const pieLabels = Object.keys(servicesCount).length > 0 ? Object.keys(servicesCount) : ['No data'];
