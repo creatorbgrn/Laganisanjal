@@ -394,7 +394,6 @@ function renderAnalytics() {
         }
     });
 
-    const breakdownEl = document.getElementById("sales-service-breakdown");
     if (breakdownEl) {
         const max = Math.max(...Object.values(servicesRevenue), 1);
         breakdownEl.innerHTML = Object.entries(servicesRevenue)
