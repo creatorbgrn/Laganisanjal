@@ -40,6 +40,8 @@ let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let currentBookingFilter = { search: "", status: "all", date: "" };
 let currentClientSearch = "";
+let salesPinUnlocked = false;
+const SALES_PIN = "2083";
 
 const defaultShopSettings = {
   services: [
@@ -328,17 +330,30 @@ function renderAnalytics() {
                 </div>
                 <div class="kpi-value" style="font-size: 2rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">${uniqueClients.size}</div>
             </div>
-            <div class="kpi-card" style="border-top: none; background: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.04); border-radius: var(--radius-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 0.5rem; padding: 1.5rem;">
+            <div class="kpi-card" id="sales-pin-card" style="border-top: none; background: var(--surface2); box-shadow: 0 8px 30px rgba(0,0,0,0.04); border-radius: var(--radius-lg); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 0.5rem; padding: 1.5rem; cursor: pointer; transition: all 0.2s;">
                 <div style="position: absolute; top: 0; left: 0; bottom: 0; width: 4px; background: #f59e0b;"></div>
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div class="kpi-label" style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">Total Sales</div>
                     <div class="kpi-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 8px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/><path d="M9 13h6M9 17h3"/></svg>
+                        ${salesPinUnlocked ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1L9.462 8H2l5.962 4.358L5.424 23l6.576-4.83L18.576 23l-2.538-10.642L22 8h-7.462L12 1z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
                     </div>
                 </div>
-                <div class="kpi-value" style="font-size: 2rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">£2,083</div>
+                <div class="kpi-value" style="font-size: 2rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">
+                    ${salesPinUnlocked ? '£2,083' : '🔒 Locked'}
+                </div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">${salesPinUnlocked ? 'Owner access' : 'Click to unlock'}</div>
             </div>
         `;
+        
+        // Add PIN unlock handler to sales card
+        const salesCard = document.getElementById("sales-pin-card");
+        if (salesCard) {
+            salesCard.addEventListener("click", (e) => {
+                if (salesPinUnlocked) return; // Already unlocked
+                e.preventDefault();
+                promptSalesPin();
+            });
+        }
     }
 
     const summary = document.getElementById("analytics-sales-summary");
@@ -787,6 +802,17 @@ async function saveSettings() {
         setFeedback(dashboardFeedback, "error", "Failed to save settings: " + e.message);
     } finally {
         saveBtns.forEach(b => { b.disabled = false; b.textContent = "Save changes"; });
+    }
+}
+
+function promptSalesPin() {
+    const pin = prompt("Enter PIN to view Total Sales:");
+    if (pin === null) return; // User cancelled
+    if (pin === SALES_PIN) {
+        salesPinUnlocked = true;
+        renderAnalytics();
+    } else {
+        alert("Incorrect PIN. Access denied.");
     }
 }
 
