@@ -335,13 +335,13 @@ function renderAnalytics() {
                 <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div class="kpi-label" style="font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.75rem;">Total Sales</div>
                     <div class="kpi-icon" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 8px; border-radius: 8px;">
-                        ${salesPinUnlocked ? '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1L9.462 8H2l5.962 4.358L5.424 23l6.576-4.83L18.576 23l-2.538-10.642L22 8h-7.462L12 1z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                     </div>
                 </div>
-                <div class="kpi-value" style="font-size: 2rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">
-                    ${salesPinUnlocked ? '£2,083' : '🔒 Locked'}
+                <div class="kpi-value" style="font-size: 1.25rem; font-weight: 700; color: var(--text); margin-top: 0.5rem;">
+                    ${salesPinUnlocked ? '✓ Unlocked' : '🔒 Locked'}
                 </div>
-                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">${salesPinUnlocked ? 'Owner access' : 'Click to unlock'}</div>
+                <div style="font-size: 0.75rem; color: var(--muted); margin-top: 0.5rem;">${salesPinUnlocked ? 'View details' : 'Click to unlock'}</div>
             </div>
         `;
         
@@ -357,6 +357,18 @@ function renderAnalytics() {
     }
 
     const summary = document.getElementById("analytics-sales-summary");
+    const breakdownEl = document.getElementById("sales-service-breakdown");
+    const revenuePanel = document.getElementById("revenue-by-service-panel");
+    
+    // Hide revenue data if PIN not unlocked
+    if (!salesPinUnlocked) {
+        if (summary) summary.innerHTML = `<div style="text-align: center; padding: 2rem; color: var(--muted);">🔒 Enter PIN to view sales data</div>`;
+        if (breakdownEl) breakdownEl.innerHTML = ``;
+        if (revenuePanel) revenuePanel.style.opacity = '0.5';
+        return; // Stop rendering sales data
+    }
+    
+    // If PIN unlocked, show the data
     if (summary) summary.innerHTML = `<div>£${revenue.toFixed(2)}</div><div style="font-size:0.85rem; color:var(--muted); font-weight:normal; margin-top:0.25rem;">Selected Range</div>`;
 
     const pieLabels = Object.keys(servicesCount);
