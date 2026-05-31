@@ -1,9 +1,0 @@
-{
-  "name": "crewe-cut-barber-website-static",
-  "version": "2.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "check": "node -e \"console.log('Static site ready. Publish the public directory and configure Supabase before deploying.')\""
-  }
-}

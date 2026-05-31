@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — LaganiSanjal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <section class="section--tight" style="background:#fff;border-bottom:1px solid var(--line)">
+    <div class="container">
+      <h1 id="pageTitle" style="font-size:1.9rem">Register on LaganiSanjal</h1>
+      <p class="muted" style="margin-top:6px">Complete the form below. Your submission is reviewed before it goes live.</p>
+      <div class="tabs" id="typeTabs" style="margin-top:18px">
+        <button data-type="business" class="active">Business / Startup</button>
+        <button data-type="investor">Investor</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container" style="max-width:860px">
+      <div id="gate"></div>
+
+      <!-- BUSINESS FORM -->
+      <form class="form" id="bizForm" style="display:none">
+        <div id="bizMsg"></div>
+        <div class="form__section-title">Business details</div>
+        <div class="form__grid">
+          <div class="field"><label>Business name <span class="req">*</span></label>
+            <input name="business_name" required></div>
+          <div class="field"><label>Owner / founder name <span class="req">*</span></label>
+            <input name="owner_name" required></div>
+          <div class="field"><label>Industry</label>
+            <select name="industry" id="bizIndustry"></select></div>
+          <div class="field"><label>Business stage</label>
+            <select name="stage">
+              <option value="idea">Idea</option>
+              <option value="early">Early stage</option>
+              <option value="running">Running business</option>
+            </select></div>
+          <div class="field"><label>Province</label>
+            <select name="province" id="bizProvince"></select></div>
+          <div class="field"><label>City / town</label>
+            <input name="city"></div>
+        </div>
+
+        <div class="form__section-title">Your pitch &amp; plans</div>
+        <div class="field field--full"><label>Short pitch <span class="hint">One or two sentences</span></label>
+          <textarea name="pitch" style="min-height:70px"></textarea></div>
+        <div class="field field--full"><label>Business plan <span class="req">*</span></label>
+          <textarea name="business_plan" required placeholder="What is your business, who are your customers, how do you make money?"></textarea></div>
+        <div class="field field--full"><label>Future &amp; growth plan</label>
+          <textarea name="future_plan" placeholder="Where do you want to take this business?"></textarea></div>
+
+        <div class="form__section-title">Funding</div>
+        <div class="form__grid">
+          <div class="field"><label>Funding amount needed (NRs) <span class="req">*</span></label>
+            <input name="funding_amount" type="number" min="0" step="1000" required></div>
+          <div class="field"><label>Current monthly revenue (NRs) <span class="hint">Optional</span></label>
+            <input name="current_revenue" type="number" min="0" step="1000"></div>
+          <div class="field field--full"><label>How will you use the funds?</label>
+            <textarea name="funds_use" style="min-height:70px"></textarea></div>
+          <div class="field"><label>Team size</label>
+            <input name="team_size" type="number" min="1"></div>
+          <div class="field"><label>Website / social link <span class="hint">Optional</span></label>
+            <input name="website" type="url" placeholder="https://"></div>
+        </div>
+
+        <div class="form__section-title">Contact (kept private — never shown publicly)</div>
+        <div class="form__grid">
+          <div class="field"><label>Contact email</label>
+            <input name="contact_email" type="email"></div>
+          <div class="field"><label>Contact phone</label>
+            <input name="contact_phone"></div>
+        </div>
+
+        <div class="form__section-title">Product sample photos</div>
+        <div class="field field--full">
+          <label>Upload up to <span id="maxImgLabel">8</span> photos <span class="hint">JPG/PNG, max 5 MB each</span></label>
+          <input type="file" id="bizImages" accept="image/*" multiple>
+          <div class="uploads" id="bizImagePreview"></div>
+        </div>
+
+        <button class="btn btn--primary btn--block" id="bizSubmit" type="submit">Submit for review</button>
+      </form>
+
+      <!-- INVESTOR FORM -->
+      <form class="form" id="invForm" style="display:none">
+        <div id="invMsg"></div>
+        <div class="form__section-title">Investor details</div>
+        <div class="form__grid">
+          <div class="field"><label>Full name <span class="req">*</span></label>
+            <input name="full_name" required></div>
+          <div class="field"><label>Investor type</label>
+            <select name="investor_type">
+              <option value="individual">Individual</option>
+              <option value="firm">Firm / company</option>
+            </select></div>
+          <div class="field"><label>Region / province focus</label>
+            <select name="region" id="invRegion"></select></div>
+          <div class="field"><label>Preferred business stage</label>
+            <select name="preferred_stage">
+              <option value="any">Any stage</option>
+              <option value="idea">Idea</option>
+              <option value="early">Early stage</option>
+              <option value="running">Running business</option>
+            </select></div>
+        </div>
+
+        <div class="form__section-title">Investment preferences</div>
+        <div class="form__grid">
+          <div class="field"><label>Minimum amount (NRs)</label>
+            <input name="min_amount" type="number" min="0" step="1000"></div>
+          <div class="field"><label>Maximum amount (NRs)</label>
+            <input name="max_amount" type="number" min="0" step="1000"></div>
+          <div class="field"><label>Type of involvement</label>
+            <select name="involvement">
+              <option value="funds">Funds only</option>
+              <option value="mentorship">Mentorship only</option>
+              <option value="both">Funds and mentorship</option>
+            </select></div>
+        </div>
+        <div class="field field--full"><label>Preferred industries <span class="hint">Select all that apply</span></label>
+          <div class="checks" id="invIndustries"></div></div>
+        <div class="field field--full"><label>Short bio / investment focus</label>
+          <textarea name="bio" placeholder="Tell businesses about your background and what you look for."></textarea></div>
+
+        <div class="form__section-title">Contact (kept private — never shown publicly)</div>
+        <div class="form__grid">
+          <div class="field"><label>Contact email</label>
+            <input name="contact_email" type="email"></div>
+          <div class="field"><label>Contact phone</label>
+            <input name="contact_phone"></div>
+        </div>
+
+        <button class="btn btn--primary btn--block" id="invSubmit" type="submit">Submit for review</button>
+      </form>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/register.js"></script>
+</body>
+</html>

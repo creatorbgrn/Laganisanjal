@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Listing — LaganiSanjal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <section class="section">
+    <div class="container">
+      <p style="margin-bottom:18px"><a href="browse.html" class="muted">&larr; Back to browse</a></p>
+      <div id="detail"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const type = params.get('type') === 'investor' ? 'investor' : 'business';
+    const id = params.get('id');
+
+    function kv(label, value) {
+      if (value == null || value === '' ) return '';
+      return `<div class="kv"><span>${escapeHtml(label)}</span><span>${escapeHtml(value)}</span></div>`;
+    }
+
+    function renderBusiness(b) {
+      const imgs = b.images || [];
+      const gallery = imgs.length ? `
+        <div class="gallery">
+          <img class="gallery__main" id="mainImg" src="${escapeHtml(imgs[0])}" alt="${escapeHtml(b.business_name)}">
+          ${imgs.length > 1 ? `<div class="gallery__thumbs">${imgs.map(u =>
+            `<img src="${escapeHtml(u)}" onclick="document.getElementById('mainImg').src=this.src">`).join('')}</div>` : ''}
+        </div>` : `<div class="listing__noimg" style="border-radius:var(--radius)">${escapeHtml(b.business_name)}</div>`;
+      const loc = [b.city, b.province].filter(Boolean).join(', ');
+      $('#detail').innerHTML = `
+        <div class="detail__hero">
+          <div>
+            ${gallery}
+            <div class="prose" style="margin-top:24px">
+              ${b.pitch ? `<p style="font-size:1.1rem;color:var(--ink)">${escapeHtml(b.pitch)}</p>` : ''}
+              ${b.business_plan ? `<h3>Business plan</h3><p>${escapeHtml(b.business_plan)}</p>` : ''}
+              ${b.future_plan ? `<h3>Future &amp; growth plan</h3><p>${escapeHtml(b.future_plan)}</p>` : ''}
+              ${b.funds_use ? `<h3>Use of funds</h3><p>${escapeHtml(b.funds_use)}</p>` : ''}
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="listing__meta" style="margin-bottom:12px">
+                ${b.industry ? `<span class="badge">${escapeHtml(b.industry)}</span>` : ''}
+                ${b.stage ? `<span class="badge badge--gray">${escapeHtml(b.stage)}</span>` : ''}
+              </div>
+              <h1 style="font-size:1.5rem">${escapeHtml(b.business_name)}</h1>
+              <p class="muted" style="margin:6px 0 16px">${escapeHtml(loc || 'Nepal')}</p>
+              <div class="kv"><span>Funding sought</span><span class="listing__amount">${formatNRs(b.funding_amount)}</span></div>
+              ${kv('Owner', b.owner_name)}
+              ${kv('Business stage', b.stage)}
+              ${b.current_revenue ? kv('Current revenue', formatNRs(b.current_revenue) + ' / mo') : ''}
+              ${b.team_size ? kv('Team size', b.team_size + ' people') : ''}
+              ${b.website ? `<div class="kv"><span>Website</span><span><a href="${escapeHtml(b.website)}" target="_blank" rel="noopener">Visit</a></span></div>` : ''}
+              <div class="notice notice--info" style="margin:16px 0 0">
+                Interested? Register or log in to take part on LaganiSanjal.
+              </div>
+              <a href="register.html?type=investor" class="btn btn--primary btn--block" style="margin-top:14px">Join as an investor</a>
+            </div>
+          </div>
+        </div>`;
+      document.title = b.business_name + ' — LaganiSanjal';
+    }
+
+    function renderInvestor(v) {
+      const range = (v.min_amount || v.max_amount)
+        ? `${formatNRs(v.min_amount)} – ${formatNRs(v.max_amount)}` : 'Flexible';
+      const inds = (v.industries || []).map(i => `<span class="badge">${escapeHtml(i)}</span>`).join(' ');
+      $('#detail').innerHTML = `
+        <div class="detail__hero">
+          <div>
+            <div class="prose">
+              <h1 style="font-size:1.7rem">${escapeHtml(v.full_name)}</h1>
+              <p class="muted">${escapeHtml(v.investor_type || 'Investor')}${v.region ? ' · ' + escapeHtml(v.region) : ''}</p>
+              ${v.bio ? `<h3>Investment focus</h3><p>${escapeHtml(v.bio)}</p>` : ''}
+              ${inds ? `<h3>Preferred industries</h3><div class="listing__meta">${inds}</div>` : ''}
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="kv"><span>Investment range</span><span class="listing__amount">${range}</span></div>
+              ${kv('Investor type', v.investor_type)}
+              ${kv('Preferred stage', v.preferred_stage)}
+              ${kv('Region focus', v.region)}
+              ${kv('Involvement', v.involvement)}
+              <div class="notice notice--info" style="margin:16px 0 0">
+                Have a business that fits? Register it so this investor can find you.
+              </div>
+              <a href="register.html?type=business" class="btn btn--primary btn--block" style="margin-top:14px">Register your business</a>
+            </div>
+          </div>
+        </div>`;
+      document.title = v.full_name + ' — LaganiSanjal';
+    }
+
+    (async () => {
+      if (!id) { $('#detail').innerHTML = '<div class="empty">Listing not found.</div>'; return; }
+      try {
+        const table = type === 'investor' ? 'public_investors' : 'public_businesses';
+        const { data, error } = await sb.from(table).select('*').eq('id', id).maybeSingle();
+        if (error) throw error;
+        if (!data) { $('#detail').innerHTML = '<div class="empty">This listing is not available.</div>'; return; }
+        type === 'investor' ? renderInvestor(data) : renderBusiness(data);
+      } catch (e) {
+        $('#detail').innerHTML = '<div class="empty">Could not load this listing.</div>';
+      }
+    })();
+  </script>
+</body>
+</html>

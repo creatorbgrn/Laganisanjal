@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Browse opportunities — LaganiSanjal</title>
+  <meta name="description" content="Browse approved Nepali businesses seeking funding and active investors on LaganiSanjal." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <section class="section--tight" style="background:#fff;border-bottom:1px solid var(--line)">
+    <div class="container">
+      <h1 style="font-size:1.9rem">Browse opportunities</h1>
+      <p class="muted" style="margin-top:6px">Approved businesses seeking funding and active investors on the platform.</p>
+      <div style="margin-top:20px;display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+        <div class="tabs" id="tabs">
+          <button data-tab="businesses" class="active">Businesses</button>
+          <button data-tab="investors">Investors</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <select id="filterIndustry" class="field" style="margin:0;min-width:170px"></select>
+          <select id="filterStage" class="field" style="margin:0;min-width:150px">
+            <option value="">All stages</option>
+            <option value="idea">Idea</option>
+            <option value="early">Early</option>
+            <option value="running">Running</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="results"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    let activeTab = 'businesses';
+
+    // industry filter options
+    (() => {
+      const sel = $('#filterIndustry');
+      sel.innerHTML = '<option value="">All industries</option>' +
+        INDUSTRIES.map(i => `<option value="${i}">${i}</option>`).join('');
+    })();
+
+    function bizCard(b) {
+      const img = (b.images && b.images[0])
+        ? `<img class="listing__img" src="${escapeHtml(b.images[0])}" alt="${escapeHtml(b.business_name)}">`
+        : `<div class="listing__noimg">${escapeHtml(b.business_name)}</div>`;
+      const loc = [b.city, b.province].filter(Boolean).join(', ');
+      return `<a class="card listing" href="listing.html?type=business&id=${b.id}">
+        ${img}
+        <div class="listing__body">
+          <div class="listing__meta">
+            ${b.industry ? `<span class="badge">${escapeHtml(b.industry)}</span>` : ''}
+            ${b.stage ? `<span class="badge badge--gray">${escapeHtml(b.stage)}</span>` : ''}
+          </div>
+          <div class="listing__title">${escapeHtml(b.business_name)}</div>
+          <div class="listing__excerpt">${escapeHtml((b.pitch || '').slice(0, 120))}</div>
+          <div class="listing__foot">
+            <span class="listing__amount">${formatNRs(b.funding_amount)}</span>
+            <span class="muted" style="font-size:.82rem">${escapeHtml(loc || 'Nepal')}</span>
+          </div>
+        </div></a>`;
+    }
+
+    function invCard(v) {
+      const range = (v.min_amount || v.max_amount)
+        ? `${formatNRs(v.min_amount)} – ${formatNRs(v.max_amount)}` : 'Flexible';
+      const inds = (v.industries || []).slice(0, 3)
+        .map(i => `<span class="badge">${escapeHtml(i)}</span>`).join('');
+      return `<a class="card listing" href="listing.html?type=investor&id=${v.id}">
+        <div class="listing__noimg" style="aspect-ratio:16/7">${escapeHtml(v.full_name)}</div>
+        <div class="listing__body">
+          <div class="listing__meta">
+            ${v.investor_type ? `<span class="badge badge--gray">${escapeHtml(v.investor_type)}</span>` : ''}
+            ${inds}
+          </div>
+          <div class="listing__title">${escapeHtml(v.full_name)}</div>
+          <div class="listing__excerpt">${escapeHtml((v.bio || '').slice(0, 120))}</div>
+          <div class="listing__foot">
+            <span class="listing__amount">${range}</span>
+            <span class="muted" style="font-size:.82rem">${escapeHtml(v.region || 'Any region')}</span>
+          </div>
+        </div></a>`;
+    }
+
+    async function load() {
+      const box = $('#results');
+      box.innerHTML = '<div class="spinner"></div>';
+      const industry = $('#filterIndustry').value;
+      const stage = $('#filterStage').value;
+      try {
+        if (activeTab === 'businesses') {
+          let q = sb.from('public_businesses').select('*').order('created_at', { ascending: false });
+          if (industry) q = q.eq('industry', industry);
+          if (stage) q = q.eq('stage', stage);
+          const { data, error } = await q;
+          if (error) throw error;
+          box.innerHTML = data.length
+            ? `<div class="grid grid--3">${data.map(bizCard).join('')}</div>`
+            : `<div class="empty">No businesses match your filters yet. Check back soon.</div>`;
+        } else {
+          let q = sb.from('public_investors').select('*').order('created_at', { ascending: false });
+          if (industry) q = q.contains('industries', [industry]);
+          if (stage) q = q.in('preferred_stage', [stage, 'any']);
+          const { data, error } = await q;
+          if (error) throw error;
+          box.innerHTML = data.length
+            ? `<div class="grid grid--3">${data.map(invCard).join('')}</div>`
+            : `<div class="empty">No investors match your filters yet. Check back soon.</div>`;
+        }
+      } catch (e) {
+        box.innerHTML = `<div class="empty">Could not load listings. Please try again later.</div>`;
+      }
+    }
+
+    $$('#tabs button').forEach(btn => btn.addEventListener('click', () => {
+      $$('#tabs button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.dataset.tab;
+      load();
+    }));
+    $('#filterIndustry').addEventListener('change', load);
+    $('#filterStage').addEventListener('change', load);
+
+    // open on requested tab
+    const params = new URLSearchParams(location.search);
+    if (params.get('tab') === 'investors') {
+      activeTab = 'investors';
+      $$('#tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === 'investors'));
+    }
+    load();
+  </script>
+</body>
+</html>

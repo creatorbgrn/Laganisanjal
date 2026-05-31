@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Log in or sign up — LaganiSanjal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <section class="section">
+    <div class="container">
+      <div class="auth-wrap">
+        <div class="tabs" id="authTabs" style="display:flex;margin-bottom:20px">
+          <button data-mode="login" class="active" style="flex:1">Log in</button>
+          <button data-mode="signup" style="flex:1">Create account</button>
+        </div>
+        <div class="form">
+          <div id="msg"></div>
+          <div class="field field--full" id="nameField" style="display:none">
+            <label>Full name <span class="req">*</span></label>
+            <input id="fullName" type="text" autocomplete="name" placeholder="Your name" />
+          </div>
+          <div class="field">
+            <label>Email <span class="req">*</span></label>
+            <input id="email" type="email" autocomplete="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label>Password <span class="req">*</span></label>
+            <input id="password" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+          </div>
+          <button class="btn btn--primary btn--block" id="submitBtn">Log in</button>
+          <p class="muted" style="text-align:center;font-size:.85rem;margin-top:14px" id="switchHint">
+            New here? <a href="#" id="toSignup">Create an account</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    let mode = 'login';
+    const params = new URLSearchParams(location.search);
+    const next = params.get('next') || 'dashboard.html';
+
+    function setMode(m) {
+      mode = m;
+      $$('#authTabs button').forEach(b => b.classList.toggle('active', b.dataset.mode === m));
+      $('#nameField').style.display = m === 'signup' ? 'flex' : 'none';
+      $('#submitBtn').textContent = m === 'signup' ? 'Create account' : 'Log in';
+      $('#switchHint').innerHTML = m === 'signup'
+        ? 'Already have an account? <a href="#" id="toLogin">Log in</a>'
+        : 'New here? <a href="#" id="toSignup">Create an account</a>';
+      wireSwitch();
+      $('#msg').innerHTML = '';
+    }
+    function wireSwitch() {
+      const s = $('#toSignup'), l = $('#toLogin');
+      s && s.addEventListener('click', e => { e.preventDefault(); setMode('signup'); });
+      l && l.addEventListener('click', e => { e.preventDefault(); setMode('login'); });
+    }
+    function showMsg(text, kind) {
+      $('#msg').innerHTML = `<div class="notice notice--${kind}">${escapeHtml(text)}</div>`;
+    }
+
+    $$('#authTabs button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode)));
+    wireSwitch();
+
+    $('#submitBtn').addEventListener('click', async () => {
+      const email = $('#email').value.trim();
+      const password = $('#password').value;
+      const fullName = $('#fullName').value.trim();
+      if (!email || !password) return showMsg('Please enter your email and password.', 'warn');
+      if (mode === 'signup' && !fullName) return showMsg('Please enter your full name.', 'warn');
+      $('#submitBtn').disabled = true;
+      try {
+        if (mode === 'signup') {
+          const { error } = await sb.auth.signUp({
+            email, password, options: { data: { full_name: fullName } }
+          });
+          if (error) throw error;
+          const { data: { session } } = await sb.auth.getSession();
+          if (!session) {
+            showMsg('Account created. Please check your email to confirm, then log in.', 'ok');
+            $('#submitBtn').disabled = false;
+            setMode('login');
+            return;
+          }
+        } else {
+          const { error } = await sb.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+        }
+        location.href = next;
+      } catch (e) {
+        showMsg(e.message || 'Something went wrong. Please try again.', 'err');
+        $('#submitBtn').disabled = false;
+      }
+    });
+
+    // already logged in? go to next
+    (async () => { if (await currentUser()) location.href = next; })();
+  </script>
+</body>
+</html>

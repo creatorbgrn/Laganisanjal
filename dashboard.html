@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Dashboard — LaganiSanjal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header id="site-header"></header>
+
+  <section class="section--tight" style="background:#fff;border-bottom:1px solid var(--line)">
+    <div class="container">
+      <h1 style="font-size:1.9rem">My Dashboard</h1>
+      <p class="muted" style="margin-top:6px" id="welcome">Track the status of your submissions.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div id="flash"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <h2 style="font-size:1.3rem">My businesses</h2>
+        <a href="register.html?type=business" class="btn btn--ghost btn--sm">+ Add a business</a>
+      </div>
+      <div id="myBusinesses" style="margin-top:16px"><div class="spinner"></div></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:44px">
+        <h2 style="font-size:1.3rem">My investor profiles</h2>
+        <a href="register.html?type=investor" class="btn btn--ghost btn--sm">+ Add investor profile</a>
+      </div>
+      <div id="myInvestors" style="margin-top:16px"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/main.js"></script>
+  <script>
+    (async () => {
+      const user = await requireAuth();
+      if (!user) return;
+
+      if (new URLSearchParams(location.search).get('submitted')) {
+        $('#flash').innerHTML = `<div class="notice notice--ok">
+          Your submission was received and is now pending review. You will see it go live here once approved.</div>`;
+      }
+
+      function statusNote(s) {
+        if (s === 'approved') return '<span class="muted" style="font-size:.84rem">Live on the platform.</span>';
+        if (s === 'pending')  return '<span class="muted" style="font-size:.84rem">Awaiting review.</span>';
+        if (s === 'rejected') return '<span class="muted" style="font-size:.84rem">Not approved. You can edit and resubmit.</span>';
+        if (s === 'removed')  return '<span class="muted" style="font-size:.84rem">Removed by admin.</span>';
+        return '';
+      }
+
+      function bizRow(b) {
+        return `<div class="card" style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <strong style="color:var(--ink)">${escapeHtml(b.business_name)}</strong>
+              ${statusBadge(b.status)}
+            </div>
+            <div style="margin-top:4px">${formatNRs(b.funding_amount)} · ${escapeHtml(b.industry || '—')} · ${statusNote(b.status)}</div>
+          </div>
+          <div class="row-actions">
+            ${b.status === 'approved' ? `<a class="btn btn--ghost btn--sm" href="listing.html?type=business&id=${b.id}">View live</a>` : ''}
+            <a class="btn btn--ghost btn--sm" href="register.html?type=business&edit=${b.id}">Edit</a>
+            <button class="btn btn--danger btn--sm" data-del="business" data-id="${b.id}">Delete</button>
+          </div>
+        </div>`;
+      }
+      function invRow(v) {
+        return `<div class="card" style="display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap">
+          <div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <strong style="color:var(--ink)">${escapeHtml(v.full_name)}</strong>
+              ${statusBadge(v.status)}
+            </div>
+            <div style="margin-top:4px">${escapeHtml(v.investor_type || 'Investor')} · ${statusNote(v.status)}</div>
+          </div>
+          <div class="row-actions">
+            ${v.status === 'approved' ? `<a class="btn btn--ghost btn--sm" href="listing.html?type=investor&id=${v.id}">View live</a>` : ''}
+            <a class="btn btn--ghost btn--sm" href="register.html?type=investor&edit=${v.id}">Edit</a>
+            <button class="btn btn--danger btn--sm" data-del="investor" data-id="${v.id}">Delete</button>
+          </div>
+        </div>`;
+      }
+
+      async function load() {
+        const [{ data: biz }, { data: inv }] = await Promise.all([
+          sb.from('businesses').select('*').order('created_at', { ascending: false }),
+          sb.from('investors').select('*').order('created_at', { ascending: false }),
+        ]);
+        $('#myBusinesses').innerHTML = (biz && biz.length)
+          ? `<div class="grid">${biz.map(bizRow).join('')}</div>`
+          : `<div class="empty">You have not registered a business yet.</div>`;
+        $('#myInvestors').innerHTML = (inv && inv.length)
+          ? `<div class="grid">${inv.map(invRow).join('')}</div>`
+          : `<div class="empty">You have not created an investor profile yet.</div>`;
+
+        $$('[data-del]').forEach(btn => btn.addEventListener('click', async () => {
+          if (!confirm('Delete this submission permanently?')) return;
+          const table = btn.dataset.del === 'investor' ? 'investors' : 'businesses';
+          const { error } = await sb.from(table).delete().eq('id', btn.dataset.id);
+          if (error) return toast('Could not delete. Try again.', 'err');
+          toast('Deleted.', 'ok');
+          load();
+        }));
+      }
+      load();
+    })();
+  </script>
+</body>
+</html>

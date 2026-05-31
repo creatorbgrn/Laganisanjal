@@ -1,238 +1,258 @@
-create extension if not exists pgcrypto;
+-- =====================================================================
+-- LaganiSanjal — Supabase schema
+-- Run this whole file in: Supabase Dashboard > SQL Editor > New query
+-- Safe to re-run (uses IF NOT EXISTS / CREATE OR REPLACE where possible).
+-- =====================================================================
 
-create table if not exists public.bookings (
-  id uuid primary key default gen_random_uuid(),
-  client_name text not null check (char_length(trim(client_name)) >= 2),
-  phone text not null check (char_length(trim(phone)) >= 5),
-  email text not null check (position('@' in email) > 1),
-  service text not null check (char_length(trim(service)) >= 2),
-  preferred_day date not null,
-  preferred_time time not null,
-  notes text not null default '',
-  status text not null default 'new' check (status in ('new', 'contacted', 'confirmed', 'completed', 'cancelled')),
-  revenue numeric(10,2) default 0,
-  website_id uuid,
-  created_at timestamptz not null default timezone('utc', now())
+-- ---------------------------------------------------------------------
+-- 1. PROFILES (one row per auth user, created automatically on signup)
+-- ---------------------------------------------------------------------
+create table if not exists public.profiles (
+  id          uuid primary key references auth.users(id) on delete cascade,
+  full_name   text,
+  is_admin    boolean not null default false,
+  created_at  timestamptz not null default now()
 );
 
-create index if not exists bookings_created_at_idx on public.bookings (created_at desc);
-create index if not exists bookings_status_idx on public.bookings (status);
-
-create table if not exists public.admin_users (
-  user_id uuid primary key references auth.users (id) on delete cascade,
-  created_at timestamptz not null default timezone('utc', now())
+-- ---------------------------------------------------------------------
+-- 2. BUSINESSES (startups / small businesses seeking funding)
+-- ---------------------------------------------------------------------
+create table if not exists public.businesses (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  business_name    text not null,
+  owner_name       text not null,
+  contact_email    text,            -- private: never exposed publicly
+  contact_phone    text,            -- private: never exposed publicly
+  stage            text,            -- idea | early | running
+  industry         text,
+  province         text,
+  city             text,
+  pitch            text,            -- short one-line / paragraph pitch
+  business_plan    text,
+  future_plan      text,
+  funding_amount   numeric,         -- amount needed, in NRs
+  funds_use        text,            -- what the funds will be used for
+  current_revenue  numeric,         -- optional, NRs / month
+  team_size        integer,
+  website          text,
+  images           text[] default '{}',   -- public URLs from storage
+  status           text not null default 'pending',  -- pending | approved | rejected | removed
+  admin_notes      text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
 );
 
-create table if not exists public.site_settings (
-  key text primary key,
-  settings jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default timezone('utc', now())
+create index if not exists businesses_status_idx  on public.businesses(status);
+create index if not exists businesses_user_idx     on public.businesses(user_id);
+
+-- ---------------------------------------------------------------------
+-- 3. INVESTORS (people / firms willing to invest)
+-- ---------------------------------------------------------------------
+create table if not exists public.investors (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  full_name        text not null,
+  contact_email    text,            -- private
+  contact_phone    text,            -- private
+  investor_type    text,            -- individual | firm
+  industries       text[] default '{}',   -- preferred industries
+  min_amount       numeric,         -- NRs
+  max_amount       numeric,         -- NRs
+  preferred_stage  text,            -- idea | early | running | any
+  region           text,            -- preferred region / province
+  bio              text,            -- investment focus / short bio
+  involvement      text,            -- funds | mentorship | both
+  status           text not null default 'pending',
+  admin_notes      text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
 );
 
-create table if not exists public.websites (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  url text not null,
-  enabled boolean not null default true,
-  created_at timestamptz not null default timezone('utc', now())
+create index if not exists investors_status_idx on public.investors(status);
+create index if not exists investors_user_idx    on public.investors(user_id);
+
+-- ---------------------------------------------------------------------
+-- 4. PAGE VIEWS (lightweight web-activity metric)
+-- ---------------------------------------------------------------------
+create table if not exists public.page_views (
+  id          bigint generated always as identity primary key,
+  path        text,
+  created_at  timestamptz not null default now()
 );
 
-create table if not exists public.notifications (
-  id uuid primary key default gen_random_uuid(),
-  website_id uuid references public.websites(id) on delete cascade,
-  title text not null,
-  message text not null,
-  created_at timestamptz not null default timezone('utc', now())
-);
+create index if not exists page_views_created_idx on public.page_views(created_at);
 
-create table if not exists public.products (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,
-  price numeric(10,2) not null,
-  description text not null,
-  created_at timestamptz not null default timezone('utc', now())
-);
-
+-- ---------------------------------------------------------------------
+-- 5. HELPER: is_admin()  (security definer avoids RLS recursion)
+-- ---------------------------------------------------------------------
 create or replace function public.is_admin()
 returns boolean
 language sql
+security definer
 stable
+set search_path = public
+as $$
+  select coalesce((select is_admin from public.profiles where id = auth.uid()), false);
+$$;
+
+-- ---------------------------------------------------------------------
+-- 6. TRIGGER: auto-create a profile row when a user signs up
+-- ---------------------------------------------------------------------
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
 security definer
 set search_path = public
 as $$
-  select exists (
-    select 1
-    from public.admin_users
-    where user_id = auth.uid()
-  );
+begin
+  insert into public.profiles (id, full_name)
+  values (new.id, new.raw_user_meta_data->>'full_name')
+  on conflict (id) do nothing;
+  return new;
+end;
 $$;
 
-create or replace function public.is_superadmin()
-returns boolean
-language sql
-stable
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
+
+-- ---------------------------------------------------------------------
+-- 7. TRIGGER: enforce status / ownership rules on businesses & investors
+--    Non-admins can never self-approve; any edit re-queues to 'pending'.
+-- ---------------------------------------------------------------------
+create or replace function public.enforce_listing_rules()
+returns trigger
+language plpgsql
 security definer
 set search_path = public
 as $$
-  select exists (
-    select 1
-    from public.admin_users
-    where user_id = auth.uid()
-    and user_id in (
-      select user_id from public.admin_users
-      where user_id = 'superadmin-user-id' -- Replace with actual superadmin user ID
-    )
-  );
+begin
+  new.updated_at := now();
+  if not public.is_admin() then
+    new.status      := 'pending';
+    new.admin_notes := case when tg_op = 'UPDATE' then old.admin_notes else null end;
+    new.user_id     := auth.uid();   -- prevent spoofing ownership
+  end if;
+  return new;
+end;
 $$;
 
-revoke all on function public.is_admin() from public;
-grant execute on function public.is_admin() to anon, authenticated;
+drop trigger if exists businesses_enforce on public.businesses;
+create trigger businesses_enforce
+  before insert or update on public.businesses
+  for each row execute function public.enforce_listing_rules();
 
-create or replace function public.get_slot_booking_count(p_day date, p_time time)
-returns integer
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select count(*)::integer
-  from public.bookings
-  where preferred_day = p_day
-    and preferred_time = p_time
-    and status in ('new', 'contacted', 'confirmed');
-$$;
+drop trigger if exists investors_enforce on public.investors;
+create trigger investors_enforce
+  before insert or update on public.investors
+  for each row execute function public.enforce_listing_rules();
 
-revoke all on function public.get_slot_booking_count(date, time) from public;
-grant execute on function public.get_slot_booking_count(date, time) to anon, authenticated;
+-- ---------------------------------------------------------------------
+-- 8. ROW LEVEL SECURITY
+-- ---------------------------------------------------------------------
+alter table public.profiles    enable row level security;
+alter table public.businesses  enable row level security;
+alter table public.investors   enable row level security;
+alter table public.page_views  enable row level security;
 
-alter table public.bookings enable row level security;
-alter table public.admin_users enable row level security;
-alter table public.site_settings enable row level security;
-alter table public.websites enable row level security;
-alter table public.notifications enable row level security;
-alter table public.products enable row level security;
+-- profiles ------------------------------------------------------------
+drop policy if exists profiles_select_own on public.profiles;
+create policy profiles_select_own on public.profiles
+  for select using (id = auth.uid() or public.is_admin());
 
-drop policy if exists "Public can insert bookings" on public.bookings;
-create policy "Public can insert bookings"
-  on public.bookings
-  for insert
-  to anon, authenticated
-  with check (status = 'new');
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_update_own on public.profiles
+  for update using (id = auth.uid()) with check (id = auth.uid());
 
-drop policy if exists "Admins can read bookings" on public.bookings;
-create policy "Admins can read bookings"
-  on public.bookings
-  for select
-  to authenticated
-  using (public.is_admin());
+-- businesses ----------------------------------------------------------
+drop policy if exists businesses_select on public.businesses;
+create policy businesses_select on public.businesses
+  for select using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Admins can update bookings" on public.bookings;
-create policy "Admins can update bookings"
-  on public.bookings
-  for update
-  to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+drop policy if exists businesses_insert on public.businesses;
+create policy businesses_insert on public.businesses
+  for insert with check (auth.uid() is not null);
 
-drop policy if exists "Users can read their own admin row" on public.admin_users;
-create policy "Users can read their own admin row"
-  on public.admin_users
-  for select
-  to authenticated
-  using (auth.uid() = user_id);
+drop policy if exists businesses_update on public.businesses;
+create policy businesses_update on public.businesses
+  for update using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Public can read site settings" on public.site_settings;
-create policy "Public can read site settings"
-  on public.site_settings
-  for select
-  to anon, authenticated
-  using (true);
+drop policy if exists businesses_delete on public.businesses;
+create policy businesses_delete on public.businesses
+  for delete using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Admins can manage site settings" on public.site_settings;
-create policy "Admins can manage site settings"
-  on public.site_settings
-  for all
-  to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+-- investors -----------------------------------------------------------
+drop policy if exists investors_select on public.investors;
+create policy investors_select on public.investors
+  for select using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Superadmins can manage websites" on public.websites;
-create policy "Superadmins can manage websites"
-  on public.websites
-  for all
-  to authenticated
-  using (public.is_superadmin());
+drop policy if exists investors_insert on public.investors;
+create policy investors_insert on public.investors
+  for insert with check (auth.uid() is not null);
 
-drop policy if exists "Superadmins can manage notifications" on public.notifications;
-create policy "Superadmins can manage notifications"
-  on public.notifications
-  for all
-  to authenticated
-  using (public.is_superadmin());
+drop policy if exists investors_update on public.investors;
+create policy investors_update on public.investors
+  for update using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Superadmins can manage products" on public.products;
-create policy "Superadmins can manage products"
-  on public.products
-  for all
-  to authenticated
-  using (public.is_superadmin());
+drop policy if exists investors_delete on public.investors;
+create policy investors_delete on public.investors
+  for delete using (user_id = auth.uid() or public.is_admin());
 
-drop policy if exists "Public can read products" on public.products;
-create policy "Public can read products"
-  on public.products
-  for select
-  to anon, authenticated
-  using (true);
+-- page_views ----------------------------------------------------------
+drop policy if exists page_views_insert on public.page_views;
+create policy page_views_insert on public.page_views
+  for insert with check (true);   -- anyone may record a visit
 
-insert into public.site_settings (key, settings)
-values ('main', '{}'::jsonb)
-on conflict (key) do nothing;
+drop policy if exists page_views_select on public.page_views;
+create policy page_views_select on public.page_views
+  for select using (public.is_admin());
 
-insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values (
-  'site-photos',
-  'site-photos',
-  true,
-  5242880,
-  array['image/jpeg','image/png','image/webp','image/gif']
-)
-on conflict (id) do update
-set public = excluded.public,
-    file_size_limit = excluded.file_size_limit,
-    allowed_mime_types = excluded.allowed_mime_types;
+-- ---------------------------------------------------------------------
+-- 9. PUBLIC VIEWS (browse pages) — expose ONLY non-sensitive columns.
+--    security_invoker = off (default) so these run as the view owner and
+--    return approved rows to anonymous visitors WITHOUT contact details.
+-- ---------------------------------------------------------------------
+create or replace view public.public_businesses as
+  select id, business_name, owner_name, stage, industry, province, city,
+         pitch, business_plan, future_plan, funding_amount, funds_use,
+         current_revenue, team_size, website, images, created_at
+  from public.businesses
+  where status = 'approved';
 
-drop policy if exists "Public can read site photos" on storage.objects;
-create policy "Public can read site photos"
-  on storage.objects
-  for select
-  to anon, authenticated
-  using (bucket_id = 'site-photos');
+create or replace view public.public_investors as
+  select id, full_name, investor_type, industries, min_amount, max_amount,
+         preferred_stage, region, bio, involvement, created_at
+  from public.investors
+  where status = 'approved';
 
-drop policy if exists "Admins can upload site photos" on storage.objects;
-create policy "Admins can upload site photos"
-  on storage.objects
-  for insert
-  to authenticated
-  with check (bucket_id = 'site-photos' and public.is_admin());
+grant select on public.public_businesses to anon, authenticated;
+grant select on public.public_investors  to anon, authenticated;
 
-drop policy if exists "Admins can update site photos" on storage.objects;
-create policy "Admins can update site photos"
-  on storage.objects
-  for update
-  to authenticated
-  using (bucket_id = 'site-photos' and public.is_admin())
-  with check (bucket_id = 'site-photos' and public.is_admin());
+-- =====================================================================
+-- 10. STORAGE BUCKET for business product photos
+-- =====================================================================
+insert into storage.buckets (id, name, public)
+values ('business-images', 'business-images', true)
+on conflict (id) do nothing;
 
-drop policy if exists "Admins can delete site photos" on storage.objects;
-create policy "Admins can delete site photos"
-  on storage.objects
-  for delete
-  to authenticated
-  using (bucket_id = 'site-photos' and public.is_admin());
+drop policy if exists "business images public read" on storage.objects;
+create policy "business images public read" on storage.objects
+  for select using (bucket_id = 'business-images');
 
-comment on table public.bookings is 'Booking requests submitted from the public website.';
-comment on table public.admin_users is 'Supabase auth users who can access the admin dashboard.';
-comment on table public.site_settings is 'Editable website services, gallery photos, and booking availability rules.';
+drop policy if exists "business images authenticated upload" on storage.objects;
+create policy "business images authenticated upload" on storage.objects
+  for insert to authenticated with check (bucket_id = 'business-images');
 
--- After creating your admin user in Supabase Auth, add the user here:
--- insert into public.admin_users (user_id) values ('YOUR_ADMIN_USER_UUID');
+drop policy if exists "business images owner delete" on storage.objects;
+create policy "business images owner delete" on storage.objects
+  for delete to authenticated using (bucket_id = 'business-images' and owner = auth.uid());
+
+-- =====================================================================
+-- DONE. Next: create your own account on the website, then run ONE of
+-- these to make yourself the admin (replace the email):
+--
+--   update public.profiles set is_admin = true
+--   where id = (select id from auth.users where email = 'you@example.com');
+-- =====================================================================
